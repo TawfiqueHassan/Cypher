@@ -1,4 +1,4 @@
-from django.shortcuts import render,HttpResponse
+from django.shortcuts import render,HttpResponse,HttpResponseRedirect
 from Homepage.models import UserProfile
 from django.conf import settings
 import face_recognition
@@ -29,12 +29,10 @@ def FaceCheck(request):
                         # Find all the faces and face encodings in the current frame of video
                         face_locations = face_recognition.face_locations(rgb_small_frame)
                         face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations) 
-                        print(face_encodings)
                         try:                   
                             check=face_recognition.compare_faces(User_Real_Face_encoding, face_encodings)
-                            print(check)
                             if check[0]==True:
-                                return render(request, "check.html")
+                                return HttpResponseRedirect('/homepage/drive/')
                             else:
                                 return HttpResponse("Unauthorized Access") 
                         except:
@@ -57,4 +55,43 @@ def FaceCheck(request):
                         return render(request, "newuser.html")
                 else:
                     return HttpResponse("Camera Issue")   
+                
+                
+def drive(request):
+    from allauth.socialaccount.models import SocialAccount, SocialApp
+    from google.oauth2.credentials import Credentials
+    from googleapiclient.discovery import build
+    from google.oauth2.credentials import Credentials
+    from allauth.socialaccount.models import SocialToken, SocialApp
+    from googleapiclient.errors import HttpError
     
+    app_google = SocialApp.objects.get(provider="google")
+    account = SocialAccount.objects.get(user=request.user)
+    user_tokens = account.socialtoken_set.first()
+    
+    creds = Credentials(
+    token=user_tokens.token,
+    refresh_token=user_tokens.token_secret,
+    client_id=app_google.client_id,
+    client_secret=app_google.secret,
+    )
+    
+    try:
+        service = build('drive', 'v3', credentials=creds)
+        
+        results = service.files().list(
+            pageSize=10, fields="nextPageToken, files(id, name)").execute()
+        items = results.get('files', [])
+
+        if not items:
+            print('No files found.')
+            
+        print('Files:')
+        for item in items:
+            print(u'{0} ({1})'.format(item['name'], item['id']))
+        
+    except HttpError as error:
+        print(f'An error occurred: {error}')
+    
+    
+    return render(request, "check.html")

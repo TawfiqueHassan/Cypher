@@ -154,6 +154,7 @@ SOCIALACCOUNT_PROVIDERS = {
         'SCOPE': [
             'profile',
             'email',
+            'https://www.googleapis.com/auth/drive',
         ],
         'AUTH_PARAMS': {
             'access_type': 'online',
@@ -167,7 +168,9 @@ INTERNAL_IPS = [
     # ...
 ]
 
-LOGIN_REDIRECT_URL = 'FaceCheck'
+LOGIN_REDIRECT_URL = '/homepage/facecheck/'
 
 SOCIALACCOUNT_LOGIN_ON_GET = True
 ACCOUNT_LOGOUT_ON_GET =True
+
+SOCIALACCOUNT_STORE_TOKENS= True
