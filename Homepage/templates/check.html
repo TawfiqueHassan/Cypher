@@ -2,47 +2,61 @@
 {% load socialaccount %}
 
 <head>
-    <title>Login</title>
     <script src="https://kit.fontawesome.com/047792a8a8.js" crossorigin="anonymous"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
     <style>
-     .login{
-        position: fixed;
-    top: 50%;
-    left: 50%;
-    -webkit-transform: translate(-50%, -50%);
-    transform: translate(-50%, -50%);
-     }
-     .bg-image{
-        background-image: url('https://i.postimg.cc/fTFyMyyh/2785178.jpg');
-        background-size: cover;
-        background-repeat: no-repeat;
-        height: 100vh;
-        ;
-     }
-            
+    .topright {
+        position: absolute;
+        right: 15px;
+        top: 65px;
+      }     
+    .btn-primary {
+        background-color: #36454F;
+        border-color: #36454F
+    }
     </style>
-
 </head>
 
 <body>
-    <div class="bg-image">
-
-    </div>
-    
     <nav class="navbar fixed-top navbar-dark bg-dark" style="background-color: #36454F;">
-        <span class="navbar-brand mb-0 h1" style="padding-left: 20px;"> <i class="fa-solid fa-book-open-reader"></i> Authorized Access </span>
+        <span class="navbar-brand mb-0 h1" style="padding-left: 20px;"> <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-unlock" viewBox="0 0 16 16">
+            <path d="M11 1a2 2 0 0 0-2 2v4a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h5V3a3 3 0 0 1 6 0v4a.5.5 0 0 1-1 0V3a2 2 0 0 0-2-2zM3 8a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V9a1 1 0 0 0-1-1H3z"/>
+          </svg> Authorized Access 
+            <span style="float: center;">    
+                {% if user.is_authenticated %}
+                    <a href="{% url 'account_logout' %}"> <button type="button" class="btn btn-primary" style=" border-radius: 10px; position: absolute; right: 10px; top: 6px; " ><i class="fa-brands fa-google"></i> Log Out</button></a>
+                {% endif %} 
+            <span> 
+        </span>
     </nav>
+    <br> <br> 
+    <div class="card-header">
+        <ol class="breadcrumb" style= " padding-left: 15px; padding-top: 15px">
+            <li class="breadcrumb-item">Drive</li>
+            <li class="breadcrumb-item active" aria-current="page"><a href="{% url 'homepage:drive' %}">Cypher</a></li>
+        </ol>
+    </div>
+    <div class="topright">
+        <a href="{% url 'homepage:upload' %}"> <button type="button" class="btn btn-success" style=" border-radius: 10px;">Upload</button>  
+    </div>
+    <br>
+    {% if object_list %}
+    {% for obj in object_list %}
+    <div class="card border-secondary text-center " style="width: 13rem; background-color: #f1f1f1; border-radius: 5px;float:left; margin-left: 25px;margin-bottom: 20px;">
+        <div class="card-body">
+            <h5 class="card-header text-white" style="font-weight: bold; border-radius: 0px; background-color: #393D47; margin-left: -21px; margin-right: -21px; margin-top: -21px;">{{obj}}</h5><br>
+                <br>
+                <button type="button" class="btn btn-dark pull-center" style="border-radius: 10px;"> Open <i class="fa-solid fa-arrow-right-to-bracket"></i></button>
+        </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+
+
       
     
-    {% if user.is_authenticated %}
-    <div class="login">
 
-        <a href="{% url 'account_logout' %}"> <button type="button" class="btn btn-primary" style="border-radius: 10px;" ><i class="fa-brands fa-google"></i> Log Out</button></a>
-        
-    </div>
-
-    {% endif %}
 
 
 </body>

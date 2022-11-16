@@ -4,6 +4,19 @@ from django.conf import settings
 import face_recognition
 from django.core.files import File
 import cv2
+from .forms import UploadFileForm
+from django.core.files.storage import FileSystemStorage
+# Imaginary function to handle an uploaded file.
+
+#Drive 
+from allauth.socialaccount.models import SocialAccount, SocialApp
+from google.oauth2.credentials import Credentials
+from googleapiclient.discovery import build
+from google.oauth2.credentials import Credentials
+from googleapiclient.http import MediaFileUpload
+from allauth.socialaccount.models import SocialToken, SocialApp
+from googleapiclient.errors import HttpError
+stck=""
 # Create your views here.
 def index(request):
     return render(request, "index.html")
@@ -52,19 +65,12 @@ def FaceCheck(request):
                         obj.User_ID=request.user
                         obj.Auth_Image= f"media\{request.user.id}_{request.user}.jpg"
                         obj.save()
-                        return render(request, "newuser.html")
+                        return HttpResponseRedirect('/homepage/drive/')
                 else:
                     return HttpResponse("Camera Issue")   
                 
                 
 def drive(request):
-    from allauth.socialaccount.models import SocialAccount, SocialApp
-    from google.oauth2.credentials import Credentials
-    from googleapiclient.discovery import build
-    from google.oauth2.credentials import Credentials
-    from allauth.socialaccount.models import SocialToken, SocialApp
-    from googleapiclient.errors import HttpError
-    
     app_google = SocialApp.objects.get(provider="google")
     account = SocialAccount.objects.get(user=request.user)
     user_tokens = account.socialtoken_set.first()
@@ -75,23 +81,90 @@ def drive(request):
     client_id=app_google.client_id,
     client_secret=app_google.secret,
     )
-    
     try:
         service = build('drive', 'v3', credentials=creds)
+        results = service.files().list(
+            pageSize=10, fields="nextPageToken, files(id, name)").execute()
+        items = results.get('files', [])
+        flag=0
+        if not items:
+            print('No files found.')
+        for i in items:
+            if 'Cypher' in i.values():
+                flag=1
+        if (flag==0):
+            file_metadata ={
+                'name' : "Cypher",
+                'mimeType' : "application/vnd.google-apps.folder",
+            }
+            service.files().create(body=file_metadata).execute()
+            return HttpResponseRedirect('/homepage/drive/')    
+    
+        results = service.files().list(
+            pageSize=10, fields="nextPageToken, files(id, name)").execute()
+        items = results.get('files', [])
+        if items:
+            folder_id=""
+            for item in items:
+                if item['name']=="Cypher":
+                    folder_id=item['id']
+            page_token = None
+            response = service.files().list(q=f"parents in '{folder_id}'",
+                                                spaces='drive',
+                                                fields='nextPageToken, files(id, name)',
+                                                pageToken=page_token).execute()
+            flist= response.get('files', [])
+            if flist:
+                folder_name=[]
+                for item in flist:
+                        folder_name.append(item['name'])
+                        page_token = response.get('nextPageToken', None) 
+                context ={
+                    "object_list": folder_name,
+                    }   
+                return render(request, "check.html",context)    
+    except HttpError as error:
+        print(f'An error occurred: {error}')
+        
+    return render(request, "check.html")
+
+def upload(request):
+    if request.method == 'POST':
+        app_google = SocialApp.objects.get(provider="google")
+        account = SocialAccount.objects.get(user=request.user)
+        user_tokens = account.socialtoken_set.first()
+        creds = Credentials(
+        token=user_tokens.token,
+        refresh_token=user_tokens.token_secret,
+        client_id=app_google.client_id,
+        client_secret=app_google.secret,
+        )
+        service = build('drive', 'v3', credentials=creds) 
         
         results = service.files().list(
             pageSize=10, fields="nextPageToken, files(id, name)").execute()
         items = results.get('files', [])
-
-        if not items:
-            print('No files found.')
-            
-        print('Files:')
+        folder_id=""
         for item in items:
-            print(u'{0} ({1})'.format(item['name'], item['id']))
+            if item['name']=="Cypher":
+                folder_id=item['id']
+                
+                
+        fname=request.FILES['file']
+        fs = FileSystemStorage()
+        filename = fs.save(fname.name, fname)
+        uploaded_file_path = fs.path(filename)
+        tname= fname.name
+        file_metadata={
+            'name': tname,
+            'parents' : [folder_id],
+        }
+        mime_Type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        media = MediaFileUpload(uploaded_file_path,mimetype=mime_Type)
         
-    except HttpError as error:
-        print(f'An error occurred: {error}')
-    
-    
-    return render(request, "check.html")
+        service.files().create(
+            body=file_metadata,
+            media_body=media,
+        ).execute() 
+        return HttpResponseRedirect('/homepage/drive/')    
+    return render(request, "upload.html")

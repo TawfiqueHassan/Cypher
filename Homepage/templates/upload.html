@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+{% load socialaccount %}
+
+<head>
+    <title>Login</title>
+    <script src="https://kit.fontawesome.com/047792a8a8.js" crossorigin="anonymous"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <style>
+        .btn-primary {
+            background-color: #36454F;
+            border-color: #36454F
+        }     
+            
+    </style>
+
+</head>
+
+<body>
+    <nav class="navbar fixed-top navbar-dark bg-dark" style="background-color: #36454F;">
+        <span class="navbar-brand mb-0 h1" style="padding-left: 20px;"> <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-unlock" viewBox="0 0 16 16">
+            <path d="M11 1a2 2 0 0 0-2 2v4a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h5V3a3 3 0 0 1 6 0v4a.5.5 0 0 1-1 0V3a2 2 0 0 0-2-2zM3 8a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V9a1 1 0 0 0-1-1H3z"/>
+          </svg>Authorized Access 
+            <span style="float: center;">    
+                {% if user.is_authenticated %}
+                    <a href="{% url 'account_logout' %}"> <button type="button" class="btn btn-primary" style=" border-radius: 10px; position: absolute; right: 10px; top: 6px; " ><i class="fa-brands fa-google"></i> Log Out</button></a>
+                {% endif %} <span> 
+            </span>
+    </nav>
+    <br> <br>
+    <div class="card-header">
+    <ol class="breadcrumb" style= " padding-left: 15px; padding-top: 15px">
+        <li class="breadcrumb-item">Drive</li>
+        <li class="breadcrumb-item " ><a href="{% url 'homepage:drive' %}">Cypher</a></li>
+        <li class="breadcrumb-item active"aria-current="page"><a href="{% url 'homepage:upload' %}">Upload</a></li>
+    </ol>
+    </div>
+    <br>
+    <div>
+        <form action="{% url 'homepage:upload' %}" enctype="multipart/form-data" method="post">
+            {% csrf_token %}
+        <div class="mb-3">
+                <input class="form-control" type="file" name="file">
+        </div>
+        <input type="submit" value="UPLOAD">
+        </form>
+    </div>
+
+
+</body>
+
+</html>

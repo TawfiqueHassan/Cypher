@@ -6,5 +6,6 @@ app_name='homepage'
 urlpatterns = [
     path('', views.index , name="index" ),
     path('facecheck/', views.FaceCheck , name="faceCheck"),
-    path('drive/', views.drive, name="Drive"),
+    path('drive/', views.drive, name="drive"),
+    path('upload/', views.upload, name="upload")
 ]
