@@ -2,9 +2,8 @@ from django.shortcuts import render,HttpResponse,HttpResponseRedirect
 from Homepage.models import UserProfile
 from django.conf import settings
 import face_recognition
-from django.core.files import File
 import cv2
-from .forms import UploadFileForm
+from cryptography.fernet import Fernet
 from django.core.files.storage import FileSystemStorage
 # Imaginary function to handle an uploaded file.
 
@@ -24,18 +23,17 @@ def index(request):
 def FaceCheck(request):
     if request.method == 'GET':
             if(UserProfile.objects.filter(User_ID=request.user).exists()):
-                test=cv2.imread(f"media\{request.user.id}_{request.user}.jpg")
                 User_Real_Face = face_recognition.load_image_file(f"media\{request.user.id}_{request.user}.jpg")
                 User_Real_Face_encoding = face_recognition.face_encodings(User_Real_Face)[0]
                 cam = cv2.VideoCapture(0)
                 s, img = cam.read()
                 if s:    # frame captured without any errors
-                        cv2.namedWindow("cam-test")
-                        cv2.imshow("cam-test",img)
-                        cv2.destroyWindow("cam-test")
                         cv2.imwrite("media/test.jpg",img)
                         Check_User_Face = face_recognition.load_image_file("media/test.jpg")
-                        Check_User_Face_encoding = face_recognition.face_encodings(Check_User_Face)[0]
+                        try:
+                            face_recognition.face_encodings(Check_User_Face)[0]
+                        except:
+                            FaceCheck(request)
                         small_frame = cv2.resize(img, (0, 0), fx=0.25, fy=0.25)
                         # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
                         rgb_small_frame = small_frame[:, :, ::-1]
@@ -50,19 +48,22 @@ def FaceCheck(request):
                                 return HttpResponse("Unauthorized Access") 
                         except:
                             return HttpResponse("Unauthorized Access") 
-  
                 else:
-                    return HttpResponse("Camera Issue") 
+                    FaceCheck(request) 
             else:
                 cam = cv2.VideoCapture(0)
-                s, img = cam.read()
-                if s:    # frame captured without any errors
-                        cv2.namedWindow("cam-test")
-                        cv2.imshow("cam-test",img)
-                        cv2.destroyWindow("cam-test")
+                s, img = cam.read()              
+                if s:    # frame captured without any errors 
                         cv2.imwrite(f"media\{request.user.id}_{request.user}.jpg",img)
+                        User_Real_Face = face_recognition.load_image_file(f"media\{request.user.id}_{request.user}.jpg")
+                        try:
+                            User_Real_Face_encoding = face_recognition.face_encodings(User_Real_Face)[0]
+                        except:
+                            FaceCheck(request)  
                         obj = UserProfile()
                         obj.User_ID=request.user
+                        key = Fernet.generate_key().decode()
+                        obj.key=key
                         obj.Auth_Image= f"media\{request.user.id}_{request.user}.jpg"
                         obj.save()
                         return HttpResponseRedirect('/homepage/drive/')
