@@ -15,6 +15,10 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.http import MediaFileUpload
 from allauth.socialaccount.models import SocialToken, SocialApp
 from googleapiclient.errors import HttpError
+from googleapiclient.http import MediaIoBaseDownload
+import io
+import os
+import docx2txt
 stck=""
 # Create your views here.
 def index(request):
@@ -45,9 +49,9 @@ def FaceCheck(request):
                             if check[0]==True:
                                 return HttpResponseRedirect('/homepage/drive/')
                             else:
-                                return HttpResponse("Unauthorized Access") 
+                                return render(request, "unauthorized.html")   
                         except:
-                            return HttpResponse("Unauthorized Access") 
+                             return render(request, "unauthorized.html") 
                 else:
                     FaceCheck(request) 
             else:
@@ -68,7 +72,7 @@ def FaceCheck(request):
                         obj.save()
                         return HttpResponseRedirect('/homepage/drive/')
                 else:
-                    return HttpResponse("Camera Issue")   
+                    return render(request, "unauthorized.html")   
                 
                 
 def drive(request):
@@ -117,13 +121,17 @@ def drive(request):
             flist= response.get('files', [])
             if flist:
                 folder_name=[]
+                folder_ids=[]
                 for item in flist:
                         folder_name.append(item['name'])
+                        folder_ids.append(item['id'])
                         page_token = response.get('nextPageToken', None) 
+                        
+                mylist = zip(folder_name, folder_ids)
                 context ={
-                    "object_list": folder_name,
+                    "object_list": mylist,
                     }   
-                return render(request, "check.html",context)    
+                return render(request, "check.html",context)       
     except HttpError as error:
         print(f'An error occurred: {error}')
         
@@ -156,6 +164,20 @@ def upload(request):
         filename = fs.save(fname.name, fname)
         uploaded_file_path = fs.path(filename)
         tname= fname.name
+        Object=UserProfile.objects.get(User_ID=request.user)
+        ftool = Fernet(Object.key)
+        
+        data=''
+        with open(uploaded_file_path,'rb') as reader:
+            data=reader.read()
+        print(data)
+        
+        encryptedData=ftool.encrypt(data)
+        
+        with open(uploaded_file_path,'wb') as writer:
+            writer.write(encryptedData)
+            writer.close()
+    
         file_metadata={
             'name': tname,
             'parents' : [folder_id],
@@ -167,5 +189,60 @@ def upload(request):
             body=file_metadata,
             media_body=media,
         ).execute() 
+    
+        
         return HttpResponseRedirect('/homepage/drive/')    
     return render(request, "upload.html")
+
+
+def openfile(request,id):
+    if request.method == 'GET':
+        app_google = SocialApp.objects.get(provider="google")
+        account = SocialAccount.objects.get(user=request.user)
+        user_tokens = account.socialtoken_set.first()
+        creds = Credentials(
+        token=user_tokens.token,
+        refresh_token=user_tokens.token_secret,
+        client_id=app_google.client_id,
+        client_secret=app_google.secret,
+        )
+        service = build('drive', 'v3', credentials=creds) 
+        file_id = id
+
+        # pylint: disable=maybe-no-member
+        request1 = service.files().get_media(fileId=file_id)
+        dfile = io.BytesIO()
+        downloader = MediaIoBaseDownload(dfile, request1)
+        done = False
+        while done is False:
+            status, done = downloader.next_chunk()
+            print(F'Download {int(status.progress() * 100)}.')
+        fs = FileSystemStorage()
+        filename = fs.save("test.docx", dfile)
+        downloaded_file_path = fs.path(filename)
+        Object=UserProfile.objects.get(User_ID=account.user_id)
+        ftool = Fernet(Object.key)
+        
+        with open(downloaded_file_path,'rb') as reader1:
+            data1=reader1.read()
+        
+        decryptedData=ftool.decrypt(data1)
+        
+        with open(downloaded_file_path,'wb') as writer1:
+            writer1.write(decryptedData)
+            
+        my_text = docx2txt.process(downloaded_file_path)
+        
+        text=my_text.splitlines()
+        context ={
+            "object_list": text,
+            }  
+        
+        if os.path.exists(downloaded_file_path):
+            os.remove(downloaded_file_path)
+        
+        return render(request, "open.html", context) 
+        
+        
+            
+        
